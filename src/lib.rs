@@ -112,7 +112,7 @@ fn absorb(mut s: [u32; N_STATE], block: [u32; RATE]) -> [u32; N_STATE] {
 ///
 /// # Example
 /// ```
-/// use posiedon_m31::PoseidonHasher;
+/// use poseidon_m31::PoseidonHasher;
 ///
 /// let mut h = PoseidonHasher::new();
 /// h.update(b"hello ");
@@ -174,4 +174,26 @@ pub fn hash_bytes(data: &[u8]) -> [u8; 32] {
     let mut h = PoseidonHasher::new();
     h.update(data);
     h.finalize()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case::empty(&[], 1183174448u32)]
+    #[case::single_zero(&[0u8], 1183174448u32)]
+    #[case::single_one(&[1u8], 846768668u32)]
+    #[case::partial_block(&[1u8,2,3,4], 1952108966u32)]
+    #[case::hello(b"hello", 533342012u32)]
+    #[case::exact_1block(&[1u8,2,3,4,5,6,7,8], 2058728681u32)]
+    #[case::rate_plus_1(&[1u8,2,3,4,5,6,7,8,9], 1814693292u32)]
+    #[case::exact_2blocks(&[1u8,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16], 2145539044u32)]
+    #[case::two_blocks_plus(&[1u8,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17], 478665017u32)]
+    fn test_hash_first_word(#[case] input: &[u8], #[case] expected: u32) {
+        let digest = hash_bytes(input);
+        let got = u32::from_le_bytes(digest[0..4].try_into().unwrap());
+        assert_eq!(got, expected, "input={input:?}");
+    }
 }
